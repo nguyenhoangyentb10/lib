@@ -82,24 +82,34 @@ def test_enter_then_exit():
     assert state.get() == 0
 
 
-def test_disappear_inside_decrements():
-    """Người biến mất khi đang inside (ra ngoài không qua zone) phải giảm count."""
+def test_disappear_inside_no_decrement():
+    """Biến mất trực tiếp từ inside (không qua buffer/outside) không được giảm count."""
     zc = make_counter()
     zc.process(1, "outside")
     zc.process(1, "buffer")
     zc.process(1, "inside")
     assert state.get() == 1
 
-    # ID 1 mất track (không có trong active_ids)
-    zc._cleanup(active_ids=set())
-    assert state.get() == 0
+    zc._cleanup(active_ids=set())  # mất track khi đang inside
+    assert state.get() == 1        # count giữ nguyên
 
 
-def test_disappear_outside_no_change():
-    """Người biến mất khi đang outside không làm count thay đổi."""
+def test_none_zone_ignored_preserves_transition():
+    """Gap giữa zone (current_zone=None) không phá vỡ state machine."""
     zc = make_counter()
+    # Vào: outside → None (gap) → buffer → None (gap) → inside
     zc.process(1, "outside")
-    zc._cleanup(active_ids=set())
+    zc.process(1, None)    # gap — phải bỏ qua
+    zc.process(1, "buffer")
+    zc.process(1, None)    # gap — phải bỏ qua
+    zc.process(1, "inside")
+    assert state.get() == 1
+
+    # Ra: inside → None (gap) → buffer → None (gap) → outside
+    zc.process(1, None)    # gap
+    zc.process(1, "buffer")
+    zc.process(1, None)    # gap
+    zc.process(1, "outside")
     assert state.get() == 0
 
 

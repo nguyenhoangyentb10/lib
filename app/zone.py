@@ -78,6 +78,11 @@ class ZoneCounter:
     # ------------------------------------------------------------------
 
     def _process(self, tid: int, current_zone: str | None):
+        # Nếu detection nằm ngoài tất cả zone → giữ nguyên state cũ.
+        # Tránh gap nhỏ giữa zone làm mất thông tin came_from.
+        if current_zone is None:
+            return
+
         prev_zone = self._id_zone.get(tid)
 
         if current_zone == prev_zone:
@@ -99,13 +104,9 @@ class ZoneCounter:
         self._id_zone[tid] = current_zone
 
     def _cleanup(self, active_ids: set[int]):
-        """Xoá state của ID không còn được track nữa.
-        Nếu ID biến mất khi đang ở INSIDE → decrement (người ra ngoài không qua zone).
-        """
+        """Xoá state của ID không còn được track nữa."""
         for tid in list(self._id_zone.keys()):
             if tid not in active_ids:
-                if self._id_zone[tid] == "inside":
-                    state.decrement()
                 self._id_zone.pop(tid, None)
                 self._id_buffer_from.pop(tid, None)
 
