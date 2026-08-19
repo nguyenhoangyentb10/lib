@@ -80,3 +80,31 @@ def test_enter_then_exit():
     zc.process(1, "buffer")
     zc.process(1, "outside")
     assert state.get() == 0
+
+
+def test_disappear_inside_decrements():
+    """Người biến mất khi đang inside (ra ngoài không qua zone) phải giảm count."""
+    zc = make_counter()
+    zc.process(1, "outside")
+    zc.process(1, "buffer")
+    zc.process(1, "inside")
+    assert state.get() == 1
+
+    # ID 1 mất track (không có trong active_ids)
+    zc._cleanup(active_ids=set())
+    assert state.get() == 0
+
+
+def test_disappear_outside_no_change():
+    """Người biến mất khi đang outside không làm count thay đổi."""
+    zc = make_counter()
+    zc.process(1, "outside")
+    zc._cleanup(active_ids=set())
+    assert state.get() == 0
+
+
+def test_count_floor_zero():
+    """count không được xuống âm dù decrement nhiều lần."""
+    for _ in range(5):
+        state.decrement()
+    assert state.get() == 0

@@ -12,7 +12,7 @@ class AppState:
 
     def decrement(self):
         with self._lock:
-            self.count -= 1
+            self.count = max(0, self.count - 1)
 
     def get(self) -> int:
         with self._lock:
