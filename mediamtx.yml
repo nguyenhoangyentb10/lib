@@ -1,0 +1,13 @@
+# MediaMTX — config tối giản để giả lập RTSP local
+logLevel: info
+logDestinations: [stdout]
+
+rtspAddress: :8554
+rtmpAddress: :1935
+hlsAddress: :8888
+webrtcAddress: :8889
+
+# Cho phép bất kỳ publisher nào push vào path "live"
+paths:
+  live:
+    source: publisher

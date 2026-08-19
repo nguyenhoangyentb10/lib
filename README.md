@@ -151,6 +151,77 @@ Các test case:
 
 ---
 
+## Giả lập RTSP để test
+
+Dùng **MediaMTX** (RTSP server) + **FFmpeg** (đẩy video vào).
+
+### Bước 1 — Tải MediaMTX
+
+Vào trang release: https://github.com/bluenviron/mediamtx/releases
+
+Tải file `mediamtx_vX.X.X_linux_amd64.tar.gz`, giải nén rồi đặt binary `mediamtx` vào thư mục gốc project.
+
+```bash
+tar xzf mediamtx_*.tar.gz
+# → file `mediamtx` xuất hiện cạnh mediamtx.yml
+```
+
+### Bước 2 — Chạy RTSP server + FFmpeg (terminal 1)
+
+```bash
+# Stream từ video file có người (khuyến nghị)
+./scripts/sim_rtsp.sh /path/to/people.mp4
+
+# Hoặc test pattern nếu chưa có video (YOLO không detect được người)
+./scripts/sim_rtsp.sh
+```
+
+Script sẽ:
+1. Khởi động MediaMTX lắng nghe tại `:8554`
+2. FFmpeg đẩy video vào `rtsp://localhost:8554/live` (lặp vô hạn)
+
+### Bước 3 — Cấu hình app (`.env`)
+
+```env
+CAMERA_SOURCE=rtsp://localhost:8554/live
+SHOW_WINDOW=1
+```
+
+### Bước 4 — Chạy app (terminal 2)
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+```
+People inside: 2
+```
+
+### Sơ đồ luồng khi test
+
+```
+FFmpeg (video.mp4 loop)
+       │  RTSP push
+       ▼
+  MediaMTX :8554          ← RTSP server
+       │  RTSP pull
+       ▼
+  camera.py thread         ← CameraReader
+       │  frame
+       ▼
+  tracker.py               ← YOLOv8 + ByteTrack
+       │  sv.Detections
+       ▼
+  zone.py                  ← state machine
+       │  state.increment/decrement
+       ▼
+  FastAPI /count           ← REST + WebSocket
+```
+
+> **Ghi chú WSL2:** RTSP server chạy trên `localhost` của WSL2. Nếu muốn truy cập từ Windows host, dùng IP của WSL (`hostname -I` để lấy IP).
+
+---
+
 ## Stack
 
 | Thư viện       | Vai trò                        |
